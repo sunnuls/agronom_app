@@ -55,7 +55,8 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    let messenger = engineBridge.applicationRegistrar.messenger
+    // Swift 6 / новый Xcode: messenger — вызов метода, не свойство.
+    let messenger = engineBridge.applicationRegistrar.messenger()
     let channel = FlutterMethodChannel(
       name: "com.agronom.agronom_app/import",
       binaryMessenger: messenger

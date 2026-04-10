@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/profile.dart';
 import '../models/calculation_log.dart';
 import '../providers/app_provider.dart';
+import '../widgets/potion_flask_icon.dart';
 
 class CalcScreen extends StatefulWidget {
   final Profile profile;
@@ -157,7 +158,10 @@ class _CalcScreenState extends State<CalcScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: ListView(
+      body: GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _sectionCard(
@@ -278,12 +282,14 @@ class _CalcScreenState extends State<CalcScreen> {
                     const SizedBox(height: 16),
                     const Divider(color: Colors.white24),
                     const SizedBox(height: 8),
-                    ...activeChems.map((c) => Padding(
+                    ...activeChems.asMap().entries.map((e) {
+                      final c = e.value;
+                      return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       child: Row(
                         children: [
-                          const Icon(Icons.science_outlined, color: Colors.white54, size: 18),
-                          const SizedBox(width: 8),
+                          PotionFlaskIcon(key: ValueKey<int>(e.key), size: 22),
+                          const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               c.name,
@@ -300,7 +306,8 @@ class _CalcScreenState extends State<CalcScreen> {
                           ),
                         ],
                       ),
-                    )),
+                    );
+                    }),
                   ],
                 ],
               ),
@@ -344,6 +351,7 @@ class _CalcScreenState extends State<CalcScreen> {
             ),
           ],
         ],
+        ),
       ),
     );
   }

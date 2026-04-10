@@ -31,12 +31,28 @@ class ExportHelper {
     return s;
   }
 
+  /// На iOS лист «Поделиться» должен быть привязан к ненулевому [Rect] в координатах экрана.
+  static Rect _sharePositionOrigin(BuildContext context) {
+    final box = context.findRenderObject();
+    if (box is RenderBox && box.hasSize) {
+      final size = box.size;
+      if (size.width >= 1 && size.height >= 1) {
+        return box.localToGlobal(Offset.zero) & size;
+      }
+    }
+    final media = MediaQuery.maybeOf(context);
+    final sz = media?.size ?? const Size(390, 844);
+    final top = (media?.viewPadding.top ?? media?.padding.top ?? 0) + 36;
+    return Rect.fromCenter(center: Offset(sz.width / 2, top), width: 48, height: 48);
+  }
+
   static Future<void> shareJson({
     required BuildContext context,
     required Map<String, dynamic> data,
     required String fileStem,
     required String shareSubject,
   }) async {
+    final sharePositionOrigin = _sharePositionOrigin(context);
     final json = const JsonEncoder.withIndent('  ').convert(data);
     final name = '${sanitizeFileStem(fileStem)}.agronom';
     final dir = await getTemporaryDirectory();
@@ -45,6 +61,7 @@ class ExportHelper {
     await Share.shareXFiles(
       [XFile(file.path, mimeType: 'application/json')],
       text: shareSubject,
+      sharePositionOrigin: sharePositionOrigin,
     );
   }
 

@@ -77,11 +77,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ],
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+      body: GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
             _section('Основные параметры'),
             const SizedBox(height: 12),
             _field(
@@ -170,6 +173,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
           ],
+          ),
         ),
       ),
     );

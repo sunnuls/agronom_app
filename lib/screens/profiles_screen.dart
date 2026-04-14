@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../export_helper.dart';
@@ -239,15 +238,18 @@ class _ProfilesScreenState extends State<ProfilesScreen> {
   }
 
   Future<void> _importProfile(BuildContext context) async {
-    final result = await showDialog<String?>(
-      context: context,
-      builder: (_) => const _ImportProfileDialog(),
-    );
-    if (!context.mounted) return;
-    // Пустая строка: импорт уже выполнен из файла (кнопка «Импорт из файла»).
-    if (result == null) return;
-    if (result.isEmpty) return;
-    await ImportBridge.importProfileFromJsonString(context, result);
+    try {
+      final text = await ImportBridge.pickFileUtf8();
+      if (text == null) return;
+      if (!context.mounted) return;
+      await ImportBridge.importProfileFromJsonString(context, text);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Файл: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
   }
 
   void _openCalc(BuildContext context, Profile profile) {
@@ -308,164 +310,6 @@ class _ProfilesScreenState extends State<ProfilesScreen> {
               await context.read<AppProvider>().deleteProfile(profile.id!);
             },
             child: const Text('Удалить', style: TextStyle(color: Colors.redAccent)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Диалог с [TextEditingController] в [State.dispose] — иначе возможен assert `_dependents.isEmpty` при закрытии.
-class _ImportProfileDialog extends StatefulWidget {
-  const _ImportProfileDialog();
-
-  @override
-  State<_ImportProfileDialog> createState() => _ImportProfileDialogState();
-}
-
-class _ImportProfileDialogState extends State<_ImportProfileDialog> {
-  late final TextEditingController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pasteFromClipboard() async {
-    final d = await Clipboard.getData(Clipboard.kTextPlain);
-    if (d?.text != null) setState(() => _ctrl.text = d!.text!);
-  }
-
-  Future<void> _pickFileIntoField() async {
-    try {
-      final text = await ImportBridge.pickFileUtf8();
-      if (text == null) return;
-      if (mounted) setState(() => _ctrl.text = text);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Файл: $e'), backgroundColor: Colors.redAccent),
-        );
-      }
-    }
-  }
-
-  Future<void> _importFromFileOneStep() async {
-    try {
-      final text = await ImportBridge.pickFileUtf8();
-      if (text == null) return;
-      final ok = await ImportBridge.importProfileFromJsonString(context, text);
-      if (ok && mounted) Navigator.of(context).pop('');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Файл: $e'), backgroundColor: Colors.redAccent),
-        );
-      }
-    }
-  }
-
-  void _handlePopInvoked(bool didPop, Object? result) {
-    if (didPop) return;
-    // Как в системных формах: первое «Назад» только убирает клавиатуру; закрытие — со второго.
-    // Закрытие диалога при активной клавиатуре даёт assert _dependents в framework.
-    final focus = FocusManager.instance.primaryFocus;
-    if (focus != null && focus.hasFocus) {
-      focus.unfocus();
-      return;
-    }
-    if (mounted && Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: _handlePopInvoked,
-      child: AlertDialog(
-        backgroundColor: const Color(0xFF162B42),
-        title: const Text('Импорт профиля', style: TextStyle(color: Colors.white)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Загрузите файл .agronom / .json с телефона, вставите текст вручную или откройте файл через «Открыть с помощью».',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: _importFromFileOneStep,
-                icon: const Icon(Icons.upload_file, size: 22),
-                label: const Text('Загрузить файл и импортировать'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF1976D2),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: _pickFileIntoField,
-                icon: const Icon(Icons.folder_open, color: Color(0xFF90CAF9)),
-                label: const Text(
-                  'Загрузить файл в поле (без импорта)',
-                  style: TextStyle(color: Color(0xFF90CAF9)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _ctrl,
-                maxLines: 8,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                decoration: InputDecoration(
-                  hintText: '{ "type": "agronom_profile", ... }',
-                  hintStyle: const TextStyle(color: Colors.white30),
-                  filled: true,
-                  fillColor: const Color(0xFF0D1F33),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: _pasteFromClipboard,
-                icon: const Icon(Icons.paste, color: Color(0xFF90CAF9)),
-                label: const Text('Вставить из буфера', style: TextStyle(color: Color(0xFF90CAF9))),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              FocusManager.instance.primaryFocus?.unfocus();
-              Navigator.pop(context);
-            },
-            child: const Text('Отмена', style: TextStyle(color: Colors.white70)),
-          ),
-          TextButton(
-            onPressed: () {
-              FocusManager.instance.primaryFocus?.unfocus();
-              final raw = _ctrl.text.trim();
-              if (raw.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Вставьте JSON или загрузите файл'), backgroundColor: Colors.redAccent),
-                );
-                return;
-              }
-              Navigator.pop(context, raw);
-            },
-            child: const Text('Импорт', style: TextStyle(color: Color(0xFF90CAF9))),
           ),
         ],
       ),

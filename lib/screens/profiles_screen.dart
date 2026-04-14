@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -346,14 +344,6 @@ class _ImportProfileDialogState extends State<_ImportProfileDialog> {
   }
 
   Future<void> _pickFileIntoField() async {
-    if (!Platform.isAndroid) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Загрузка файла настроена для Android')),
-        );
-      }
-      return;
-    }
     try {
       final text = await ImportBridge.pickFileUtf8();
       if (text == null) return;
@@ -368,14 +358,6 @@ class _ImportProfileDialogState extends State<_ImportProfileDialog> {
   }
 
   Future<void> _importFromFileOneStep() async {
-    if (!Platform.isAndroid) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Загрузка файла настроена для Android')),
-        );
-      }
-      return;
-    }
     try {
       final text = await ImportBridge.pickFileUtf8();
       if (text == null) return;

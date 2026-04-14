@@ -30,9 +30,9 @@ class ImportBridge {
     }
   }
 
-  /// Выбор файла через системный диалог (Android [ACTION_OPEN_DOCUMENT]). UTF-8 текст или `null` при отмене.
+  /// Выбор файла через системный диалог (Android [ACTION_OPEN_DOCUMENT], iOS UIDocumentPicker). UTF-8 текст или `null` при отмене.
   static Future<String?> pickFileUtf8() async {
-    if (!Platform.isAndroid) return null;
+    if (!Platform.isAndroid && !Platform.isIOS) return null;
     try {
       final raw = await _channel.invokeMethod<dynamic>('pickFile');
       if (raw == null) return null;
